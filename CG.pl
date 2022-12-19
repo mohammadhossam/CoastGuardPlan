@@ -1,4 +1,4 @@
-:- include('KB3.pl').
+:- include('KB.pl').
 
 describe_situation(guard_loc(X, Y), guard_load(Load), ShipLocations, s0) :-
     agent_loc(X, Y),
