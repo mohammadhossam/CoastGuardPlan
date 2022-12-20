@@ -1,31 +1,58 @@
-:- include('KB.pl').
+:- include('KB2.pl').
 
-describe_situation(guard_loc(X, Y), guard_load(Load), ShipLocations, s0) :-
+move_validity(X, Y, A) :-
+    (A = left, Y >= 0);
+    (A = up, X >= 0);
+    (A = right, grid(D, D), Y < D);
+    (A = down, grid(D, D), X < D).
+
+pickup_validity(X, Y, Load, RemainingShips) :-
+    member([X, Y], RemainingShips),
+    capacity(C),
+    Load < C.
+
+drop_validity(X, Y, Load) :-
+    station(X, Y),
+    Load > 0.
+
+
+describe_situation(X, Y, Load, ShipLocations, s0) :-
     agent_loc(X, Y),
     Load = 0,
     ships_loc(ShipLocations).
 
+describe_situation(X, Y, Load, ShipLocations, result(Action, S)) :-
+    describe_situation(X1, Y1, Load_old, ShipLocations_old, S),
+    (
+        (Action = left, X is X1, Y is Y1 - 1, Load is Load_old, move_validity(X, Y, Action), ShipLocations = ShipLocations_old);
+        (Action = up, X is X1 - 1, Y is Y1, Load is Load_old, move_validity(X, Y, Action), ShipLocations = ShipLocations_old);
+        (Action = right, X is X1, Y is Y1 + 1, Load is Load_old, move_validity(X, Y, Action), ShipLocations = ShipLocations_old);
+        (Action = down, X is X1 + 1, Y is Y1, Load is Load_old, move_validity(X, Y, Action), ShipLocations = ShipLocations_old);
+        (Action = pickup, X is X1, Y is Y1, pickup_validity(X, Y, Load_old, ShipLocations_old), Load is Load_old + 1, delete(ShipLocations_old, [X, Y], ShipLocations));
+        (Action = drop, X is X1, Y is Y1, drop_validity(X, Y, Load_old), Load is 0, ShipLocations = ShipLocations_old)
+    ).
+
 % There are 2 ships and we're gonna pickup from the first one
-describe_situation(guard_loc(X, Y), guard_load(Load), [[X2, Y2]], result(pickup, S)) :-
-    describe_situation(guard_loc(X, Y), guard_load(Load_old), [[X, Y], [X2, Y2]], S),
-    capacity(Capacity),
-    Load is Load_old + 1,
-    Load =< Capacity.
+% describe_situation(guard_loc(X, Y), guard_load(Load), [[X2, Y2]], result(pickup, S)) :-
+%     describe_situation(guard_loc(X, Y), guard_load(Load_old), [[X, Y], [X2, Y2]], S),
+%     capacity(Capacity),
+%     Load is Load_old + 1,
+%     Load =< Capacity.
 
-% There are 2 ships and we're gonna pickup from the second one
-describe_situation(guard_loc(X, Y), guard_load(Load), [[X1, Y1]], result(pickup, S)) :-
-    describe_situation(guard_loc(X, Y), guard_load(Load_old), [[X1, Y1], [X, Y]], S),
-    capacity(Capacity),
-    Load is Load_old + 1,
-    Load =< Capacity.
+% % There are 2 ships and we're gonna pickup from the second one
+% describe_situation(guard_loc(X, Y), guard_load(Load), [[X1, Y1]], result(pickup, S)) :-
+%     describe_situation(guard_loc(X, Y), guard_load(Load_old), [[X1, Y1], [X, Y]], S),
+%     capacity(Capacity),
+%     Load is Load_old + 1,
+%     Load =< Capacity.
 
-% There's only one ship and we're at its location
-describe_situation(guard_loc(X, Y), guard_load(Load), ShipLocations, result(pickup, S)) :-
-    describe_situation(guard_loc(X, Y), guard_load(Load_old), [[X, Y]], S),
-    capacity(Capacity),
-    Load is Load_old + 1,
-    Load =< Capacity,
-    ShipLocations = [].
+% % There's only one ship and we're at its location
+% describe_situation(guard_loc(X, Y), guard_load(Load), ShipLocations, result(pickup, S)) :-
+%     describe_situation(guard_loc(X, Y), guard_load(Load_old), [[X, Y]], S),
+%     capacity(Capacity),
+%     Load is Load_old + 1,
+%     Load =< Capacity,
+%     ShipLocations = [].
 
 
 % describe_situation(guard_loc(X, Y), guard_load(Load), [Ship1_load, Ship2_load], result(pickup, S)) :-
@@ -49,46 +76,44 @@ describe_situation(guard_loc(X, Y), guard_load(Load), ShipLocations, result(pick
 %     ships_loc([[X1, Y1]]),
 %     ((X = X1, Y = Y1, Ship1_load_old = 1, Ship1_load = 0)).
 
-describe_situation(guard_loc(X, Y), guard_load(Load), ShipLocations, result(drop, S)) :-
-    station(X, Y),
-    describe_situation(guard_loc(X, Y), guard_load(Load_old), ShipLocations, S),
-    Load_old > 0,
-    Load = 0.
+% describe_situation(guard_loc(X, Y), guard_load(Load), ShipLocations, result(drop, S)) :-
+%     station(X, Y),
+%     describe_situation(guard_loc(X, Y), guard_load(Load_old), ShipLocations, S),
+%     Load_old > 0,
+%     Load = 0.
 
-describe_situation(guard_loc(X, Y), guard_load(Load), ShipLocations, result(left, S)) :-
-    describe_situation(guard_loc(X, Y_old), guard_load(Load_old), ShipLocations, S),
-    Y is Y_old - 1,
-    Y >= 0,
-    Load = Load_old.
+% describe_situation(guard_loc(X, Y), guard_load(Load), ShipLocations, result(left, S)) :-
+%     describe_situation(guard_loc(X, Y_old), guard_load(Load_old), ShipLocations, S),
+%     Y is Y_old - 1,
+%     Y >= 0,
+%     Load = Load_old.
 
-describe_situation(guard_loc(X, Y), guard_load(Load), ShipLocations, result(up, S)) :-
-    describe_situation(guard_loc(X_old, Y), guard_load(Load_old), ShipLocations, S),
-    X is X_old - 1,
-    X >= 0,
-    Load = Load_old.
+% describe_situation(guard_loc(X, Y), guard_load(Load), ShipLocations, result(up, S)) :-
+%     describe_situation(guard_loc(X_old, Y), guard_load(Load_old), ShipLocations, S),
+%     X is X_old - 1,
+%     X >= 0,
+%     Load = Load_old.
 
-describe_situation(guard_loc(X, Y), guard_load(Load), ShipLocations, result(right, S)) :-
-    describe_situation(guard_loc(X, Y_old), guard_load(Load_old), ShipLocations, S),
-    grid(D, D),
-    Y is Y_old + 1,
-    Y < D,
-    Load = Load_old.
+% describe_situation(guard_loc(X, Y), guard_load(Load), ShipLocations, result(right, S)) :-
+%     describe_situation(guard_loc(X, Y_old), guard_load(Load_old), ShipLocations, S),
+%     grid(D, D),
+%     Y is Y_old + 1,
+%     Y < D,
+%     Load = Load_old.
 
-describe_situation(guard_loc(X, Y), guard_load(Load), ShipLocations, result(down, S)) :-
-    describe_situation(guard_loc(X_old, Y), guard_load(Load_old), ShipLocations, S),
-    grid(D, D),
-    X is X_old + 1,
-    X < D,
-    Load = Load_old.
+% describe_situation(guard_loc(X, Y), guard_load(Load), ShipLocations, result(down, S)) :-
+%     describe_situation(guard_loc(X_old, Y), guard_load(Load_old), ShipLocations, S),
+%     grid(D, D),
+%     X is X_old + 1,
+%     X < D,
+%     Load = Load_old.
 
 
 goal(S) :-
     ids(S,1).
 
 goal2(S) :-
-    describe_situation(guard_loc(_, _), guard_load(Load), ShipLocations, S),
-    Load = 0,
-    ShipLocations = [].
+    describe_situation(_, _, 0, [], S).
 
 ids(X,L):-
     (call_with_depth_limit(goal2(X),L,R), number(R));
